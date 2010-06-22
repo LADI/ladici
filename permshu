@@ -22,7 +22,18 @@
 require 'remotes'
 require 'irc'
 
-c, err = irc.connect{net = 'freenode', host = "chat.freenode.net", nick = "nedko_lua", realname = "nedko@arnaudov.name"}
-if c then c.get_info() else print(err) return end
+irc.serve()
+
+----[[
+connect_args = {
+   -- host = "irc.itdnet.net",
+   host = "chat.freenode.net",
+   nick = "nedko_lua",
+   realname = "nedko@arnaudov.name",
+}
+
+c, err = irc.connect(connect_args)
+if not c then print(err) return end
+--]]
 
 while remotes:io() do end
