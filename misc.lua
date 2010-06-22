@@ -1,4 +1,4 @@
--- -*- Mode: Lua -*-
+-- -*- Mode: Lua; indent-tabs-mode: t; lua-indent-level: 2 -*-
 -- PERsonal MESsage HUb (permshu)
 --
 -- Copyright (C) 2010 Nedko Arnaudov <nedko@arnaudov.name>
@@ -22,13 +22,13 @@ local base = _G
 module('misc')
 
 function dump_table(t)
-   base.print('--')
-   -- base.print(#t)
-   -- base.print('--')
-   for i,v in base.pairs(t) do
-      base.print(("%30s - %s"):format(base.tostring(i), base.tostring(v)))
-   end
-   base.print('--')
+  base.print('--')
+  -- base.print(#t)
+  -- base.print('--')
+  for i,v in base.pairs(t) do
+    base.print(("%30s - %s"):format(base.tostring(i), base.tostring(v)))
+  end
+  base.print('--')
 end
 
 function trim(s) return s:gsub("^%s*(.-)%s*$", "%1") end

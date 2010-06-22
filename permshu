@@ -1,5 +1,5 @@
 #!/usr/bin/env lua
--- -*- Mode: Lua -*-
+-- -*- Mode: Lua; indent-tabs-mode: t; lua-indent-level: 2 -*-
 -- PERsonal MESsage HUb (permshu)
 --
 -- Copyright (C) 2010 Nedko Arnaudov <nedko@arnaudov.name>
@@ -26,10 +26,10 @@ irc.serve()
 
 ----[[
 connect_args = {
-   -- host = "irc.itdnet.net",
-   host = "chat.freenode.net",
-   nick = "nedko_lua",
-   realname = "nedko@arnaudov.name",
+  -- host = "irc.itdnet.net",
+  host = "chat.freenode.net",
+  nick = "nedko_lua",
+  realname = "nedko@arnaudov.name",
 }
 
 c, err = irc.connect(connect_args)
