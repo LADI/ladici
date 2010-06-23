@@ -18,17 +18,16 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-local base = _G
-module('misc')
+module('misc', package.seeall)
 
 function dump_table(t)
-  base.print('--')
-  -- base.print(#t)
-  -- base.print('--')
-  for i,v in base.pairs(t) do
-    base.print(("%30s - %s"):format(base.tostring(i), base.tostring(v)))
+  print('--')
+  -- print(#t)
+  -- print('--')
+  for i,v in pairs(t) do
+    print(("%30s - %s"):format(tostring(i), tostring(v)))
   end
-  base.print('--')
+  print('--')
 end
 
 function trim(s) return s:gsub("^%s*(.-)%s*$", "%1") end

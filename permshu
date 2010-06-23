@@ -19,21 +19,27 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
+require 'socket'
+
 require 'remotes'
 require 'irc'
 
-irc.serve()
+irc.create_server()
 
-----[[
+---[[
 connect_args = {
-  -- host = "irc.itdnet.net",
-  host = "chat.freenode.net",
+  host = "irc.itdnet.net",
+  -- host = "chat.freenode.net",
   nick = "nedko_lua",
-  realname = "nedko@arnaudov.name",
+  -- realname = "nedko@arnaudov.name",
 }
 
-c, err = irc.connect(connect_args)
-if not c then print(err) return end
+err = irc.connect(connect_args)
+if err then print(err) return end
 --]]
 
-while remotes:io() do end
+while remotes.dispatch() do end
+
+-- httpm.get_http('download.berlios.de', "/supergrub/super_grub_disk_0.9799.iso.bz2")
+-- httpm.get_http('download.berlios.de', "/supergrub/super_grub_disk_hybrid-1.98s1.iso")
+-- httpm.dispatch()

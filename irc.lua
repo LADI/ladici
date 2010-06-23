@@ -18,10 +18,7 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-local base = _G
-local remotes = require('remotes')
-local misc = require('misc')
-module('irc')
+module('irc', package.seeall)
 
 local function parse_and_consume(buffer, regexp)
   local b = 0
@@ -34,25 +31,26 @@ local function parse_and_consume(buffer, regexp)
 end
 
 function connect(args)
-  base.assert(args.host)
-  base.assert(args.nick)
+  assert(args.host)
+  assert(args.nick)
 
   local host = args.host
   local port = args.port or 6667
   local nick = args.nick
   local username = args.username or nick
   local realname = args.realname or nick
+
   local peer
 
   local function send(msg)
-    --base.print('-----send------' .. msg)
+    --print('-----send------' .. msg)
     peer.send(msg .. "\r\n")
   end
 
   local function print_notice(msg, prefix)
     if msg then
-      if base.type(msg) == 'string' then base.print(prefix .. msg) end
-      if base.type(msg) == 'table'  then base.print(prefix .. base.table.concat(msg, ' ')) end
+      if type(msg) == 'string' then print(prefix .. msg) end
+      if type(msg) == 'table'  then print(prefix .. table.concat(msg, ' ')) end
     end
   end
 
@@ -60,10 +58,10 @@ function connect(args)
   local command_handlers = {}
 
   command_handlers['PING'] = function(prefix, command, params)
-                               --base.print("PING received")
+                               --print("PING received")
                                if #params ~= 0 then
                                  local msg = "PONG"
-                                 for _, server in base.pairs(params) do
+                                 for _, server in pairs(params) do
                                    msg = msg .. ' ' .. server
                                  end
                                  send(msg)
@@ -73,15 +71,15 @@ function connect(args)
   command_handlers['NOTICE'] = function(prefix, command, params) print_notice(params[2], 'NOTICE:  ') end
 
   command_handlers['MODE'] = function(prefix, command, params)
-                               base.print(('MODE:    [%s] [%s]'):format(params[1], params[2]))
+                               print(('MODE:    [%s] [%s]'):format(params[1], params[2]))
                              end
 
   -- welcome
-  command_handlers['001'] = function(prefix, command, params) print_notice(base.table.concat(params, ' ', 2), 'WELCOME: ') end
+  command_handlers['001'] = function(prefix, command, params) print_notice(table.concat(params, ' ', 2), 'WELCOME: ') end
   -- your host
-  command_handlers['002'] = function(prefix, command, params) print_notice(base.table.concat(params, ' ', 2), 'SHOST:   ') end
+  command_handlers['002'] = function(prefix, command, params) print_notice(table.concat(params, ' ', 2), 'SHOST:   ') end
   -- server created
-  command_handlers['003'] = function(prefix, command, params) print_notice(base.table.concat(params, ' ', 2), 'SCREAT:  ') end
+  command_handlers['003'] = function(prefix, command, params) print_notice(table.concat(params, ' ', 2), 'SCREAT:  ') end
   -- server info
   command_handlers['004'] = function(prefix, command, params)
                               local server_name = params[2]
@@ -101,11 +99,11 @@ function connect(args)
                                   local param = params[i]
                                   local _, _, key, value = param:find('^([^=]+)=(.+)')
                                   if not key then
-                                    base.print(('SCAPS:   %s is available'):format(param))
+                                    print(('SCAPS:   %s is available'):format(param))
                                     key = param
                                     value = true
                                   else
-                                    base.print(('SCAPS:   %s is [%s]'):format(key, value))
+                                    print(('SCAPS:   %s is [%s]'):format(key, value))
                                   end
                                   server_capabilities[key] = value
                                 end
@@ -113,7 +111,7 @@ function connect(args)
                             end
 
   local function stats_reply(prefix, command, params)
-    print_notice(base.table.concat(params, ' ', 2), 'SSTATS:  ')
+    print_notice(table.concat(params, ' ', 2), 'SSTATS:  ')
   end
 
   command_handlers['250'] = stats_reply
@@ -126,70 +124,103 @@ function connect(args)
   command_handlers['266'] = stats_reply
 
   local function motd_reply(prefix, command, params)
-    print_notice(base.table.concat(params, ' ', 2), 'MOTD:    ')
+    print_notice(table.concat(params, ' ', 2), 'MOTD:    ')
   end
 
   command_handlers['375'] = motd_reply -- MOTD start
   command_handlers['372'] = motd_reply -- MOTD middle
   command_handlers['376'] = motd_reply -- MOTD end
 
-  local function receiver()
-    local raw_msg, err = peer.receive()
-    if not raw_msg then return nil, err end
-    -- base.print('----receive----' .. base.tostring(raw_msg))
+  local function process_raw_msg(raw_msg)
+    --print('----receive----' .. tostring(raw_msg))
 
     local prefix
     local command
-    local argstr
-    local reset = raw_msg
+    local rest = raw_msg
 
     -- prefix
-    reset, prefix = parse_and_consume(reset, "^:([^ ]*) *")
-    --if prefix then base.print(("prefix: '%s'"):format(prefix)) end
-    --if reset then base.print(("rest: '%s'"):format(reset)) end
+    rest, prefix = parse_and_consume(rest, "^:([^ ]*) *")
+    --if prefix then print(("prefix: '%s'"):format(prefix)) end
+    --if rest then print(("rest: '%s'"):format(rest)) end
 
     -- command and  params
-    reset, command, params = parse_and_consume(reset, "^([^ ]*) *(.*)")
-    --if command then base.print(("command: '%s'"):format(command)) end
-    --if params then base.print(("params: '%s'"):format(params)) end
-    base.assert(not reset)
+    rest, command, params = parse_and_consume(rest, "^([^ ]*) *(.*)")
+    --if command then print(("command: '%s'"):format(command)) end
+    --if params then print(("params: '%s'"):format(params)) end
+    assert(not rest)
 
     params_table = {}
     local param
     while params do
       params, param = parse_and_consume(params, '^:(.*)')
-      if param then base.table.insert(params_table, param) break end
+      if param then table.insert(params_table, param) break end
       params, param = parse_and_consume(params, '^ *([^ \r\n]+) *')
-      base.table.insert(params_table, param)
+      table.insert(params_table, param)
     end
 
     if command_handlers[command] then
       command_handlers[command](prefix, command, params_table)
     else
-      base.print('----receive----' .. base.tostring(raw_msg))
-      -- if prefix then base.print(("prefix: '%s'"):format(prefix)) end
-      -- base.print(("command: '%s'"):format(command))
-      -- for _, param in base.pairs(params_table) do base.print('[' .. param .. ']') end
+      print('----receive----' .. tostring(raw_msg))
+      -- if prefix then print(("prefix: '%s'"):format(prefix)) end
+      -- print(("command: '%s'"):format(command))
+      -- for _, param in pairs(params_table) do print('[' .. param .. ']') end
     end
 
     return true
   end
 
-  local function get_info()
-    base.print('host: ' .. peer:get_desciption())
-    base.print('nick: ' .. nick)
-    base.print('username: ' .. username)
-    base.print('realname: ' .. realname)
-  end
+  peer, err = remotes.connect_tcp(host, port)
+  if not peer then return err end
 
-  peer, err = remotes.create_tcp(host, port, receiver)
-  if not peer then return nil, err end
+  remotes.add_thread(function()
+		       send(("NICK %s"):format(nick))
+		       send(("USER %s %s %s :%s"):format(username, peer.get_local_ip(), host, realname))
 
-  send(("NICK %s"):format(nick))
-  send(("USER %s %s %s :%s"):format(username, peer.local_ip, host, realname))
-  return {send = send, get_info = get_info}
+		       local buffer
+		       while true do
+			 local raw_msg
+			 local data, err = peer.receive(4000)
+			 -- print('[' .. tostring(data) .. ']')
+			 -- print('[' .. tostring(err) .. ']')
+			 if not data then break end
+
+			 if buffer then
+			   buffer = buffer .. data
+			 else
+			   buffer = data
+			 end
+
+			 -- print('---> [' .. tostring(buffer) .. ']')
+			 while buffer do
+			   buffer, raw_msg = parse_and_consume(buffer, '^([^\r\n]*)\r\n')
+			   -- print('[' .. tostring(buffer) .. ']')
+			   -- print('[' .. tostring(raw_msg) .. ']')
+			   if not raw_msg then break end
+			   process_raw_msg(raw_msg)
+			 end
+		       end
+		       peer.close()
+		     end)
 end
 
-function serve()
-  server = remotes.create_tcp_server({{host='*', port=6667}})
+local function remote_client_thread(peer)
+  print("Remote " .. peer.get_description() .. " connected")
+  peer.send('coroutines rock!\n')
+  local err
+  local data
+  while true do
+    data, err = peer.receive(4000)
+    print('[' .. tostring(data) .. ']')
+    print('[' .. tostring(err) .. ']')
+    if not data then break end
+  end
+  print(("Remote %s:%s disconnected (%s)"):format(peer.get_description(), tostring(err)))
+  sock:close()
+end
+
+function create_server()
+  print('Creating IRC server')
+  err = remotes.create_tcp_server(remote_client_thread, {{host='*', port=6667}})
+  if err then error(err) end
 end

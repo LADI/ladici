@@ -1,4 +1,4 @@
--- -*- Mode: Lua; indent-tabs-mode: t; lua-indent-level: 2 -*-
+-- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
 -- PERsonal MESsage HUb (permshu)
 --
 -- Copyright (C) 2010 Nedko Arnaudov <nedko@arnaudov.name>
@@ -18,109 +18,128 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-local base = _G
-local socket = require('socket')
-local misc = require('misc')
-module('remotes')
+require('misc')
+module('remotes', package.seeall)
 
--- misc.dump_table(socket)
--- base.assert(false)
+local threads = {}
 
-local sockets = {}
-local peers = {}
-local listeners = {}
-
-function dump_peers()
-  misc.dump_table(sockets)
-  base.print('-- peers:')
-  for sock, peer in base.pairs(peers) do
-    base.print(("%s (%s) - %s"):format(peer:get_desciption(), base.tostring(peer.receiver), base.tostring(sock)))
-  end
-  base.print('--')
+function add_thread(fun)
+  local thread = coroutine.create(fun)
+  table.insert(threads, thread)
+  -- print("new " .. tostring(thread))
+  -- misc.dump_table(threads)
 end
-function dump_peers() end
 
-function io()
-  if #sockets == 0 then base.print("no sockets to IO on") return false end
-  local ready, _, err = socket.select(sockets)
-  if err then print(err); return false; end
-
-  for no, sock in base.ipairs(ready) do
-    local peer = peers[sock]
-    local listener = listeners[sock]
-    if peer then
-      --base.print(("peer %s said something"):format(base.tostring(sock)))
-      local ret, err = peer.receiver()
-      if not ret then
-        base.print(('socket error "%s" from "%s"'):format(err, peers[sock]:get_desciption()))
-        for i, v in base.ipairs(sockets) do if v == sock then base.table.remove(sockets, i) break end end
-        peers[sock] = nil
-      end
-    elseif listener then
-      local client = sock:accept()
-      local ip, port = client:getpeername()
-      base.print(("Remote %s:%s connected"):format(ip, port))
-      local peer = {
-        ip = ip,
-        port = port,
-        get_desciption = function(peer) return ("%s:%s (client)"):format(peer.ip, peer.port) end,
-        receiver = function()
-                     local data, err = client:receive()
-                     if not data then return nil, err end
-                     base.print(('client sent: [%s]'):format(data))
-                     return true
-                   end
-      }
-      base.table.insert(sockets, client)
-      peers[client] = peer
-      dump_peers()
+local function receive(sock, block_size)
+  local block, status
+  while true do
+    local partial
+    sock:settimeout(0)            -- do not block
+    block, status, partial = sock:receive(block_size)
+    -- print('[' .. tostring(block) .. ']')
+    -- print('[' .. tostring(status) .. ']')
+    -- print('[' .. tostring(partial) .. ']')
+    if block and string.len(block) == 0 then block = nil end
+    block = block or partial
+    if block and string.len(block) == 0 then block = nil end
+    if not block and status == 'timeout' then
+      -- if data is not available, tell the dispatcher so it can eventually wait on this socket
+      coroutine.yield(sock)
+    else
+      break
     end
   end
-  return true
+  return block, status
 end
 
-function create_tcp(host, port, receiver)
-  base.assert(base.type(receiver) == 'function', "Non function receiver! " .. base.tostring(receiver))
+local function accept_thread_factory(sock, client_thread)
+  return
+  function()
+    while true do
+      sock:settimeout(0)          -- do not block
+      local client, err = sock:accept()
+      if client then
+        add_thread(function()
+                     local pair = {
+                       send = function(data) client:send(data) end,
+                       receive = function(block_size) return receive(client, block_size) end,
+                       get_description = function() return ("%s:%s"):format(client:getpeername()) end,
+                     }
+                     client_thread(pair)
+                   end)
+      elseif err == 'timeout' then
+        -- if data is not available, tell the dispatcher so it can eventually wait on this socket
+        coroutine.yield(sock)
+      else
+        error("accept failed: " .. err) -- terminate the thread coroutine
+      end
+    end
+  end
+end
+
+function dispatch()
+  local i
+  local sockets = {}            -- list of sockets that to wait on
+  while true do
+    if threads[i] == nil then   -- no more threads?
+      if threads[1] == nil then print("no more threads to dispatch") break end
+      i = 1                     -- restart the loop
+      sockets = {}
+    end
+
+    -- print('resuming ' .. tostring(threads[i]))
+    local status, sock = coroutine.resume(threads[i])
+    if not sock then            -- thread finished its task?
+      -- print(('finished %s (%s)'):format(tostring(threads[i]), sock))
+      table.remove(threads, i)
+      -- misc.dump_table(threads)
+    else
+      i = i + 1
+      assert(type(sock) == 'userdata', tostring(sock))
+      table.insert(sockets, sock)
+      if #sockets == #threads then -- all threads blocked?
+        -- print("all threads blocked")
+        -- misc.dump_table(sockets)
+        socket.select(sockets)
+        -- print("select done")
+      end
+    end
+  end
+end
+
+function connect_tcp(host, port)
   local sock, err = socket.connect(host, port)
   if not sock then return nil, err end
-  base.table.insert(sockets, sock)
+
   local local_ip = sock:getsockname()
-  ip, port2 = sock:getpeername()
-  base.assert(port == port2)
-  local peer = {
-    receiver = receiver,
-    host = host,
-    ip = ip,
-    port = port,
-    get_desciption = function(peer) return ("%s[%s]:%s (server)"):format(peer.host, peer.ip, peer.port) end
-  }
-  peers[sock] = peer
-  dump_peers()
+  local ip, port2 = sock:getpeername()
+  assert(port == port2)
+
   return {
-    local_ip = local_ip,
-    get_desciption = function() return peer:get_desciption() end,
-    send = function(data, i, j) return sock:send(data, i, j) end,
-    receive = function(pattern, prefix) return sock:receive(pattern, prefix) end,
+    get_description = function() return ("%s[%s]:%s"):format(host, ip, port) end,
+    get_local_ip = function() return local_ip end,
+    send = function(data) sock:send(data) end,
+    receive = function(block_size) return receive(sock, block_size) end,
+    close = function() sock:close() end,
   }
 end
 
-function create_tcp_server(binds, backlog)
+function create_tcp_server(client_thread, binds, backlog)
+  assert(client_thread)
   local sock, res, err
 
   sock, err = socket.tcp()
-  if not sock then return nil, err end
+  if not sock then return err end
 
-  for _, bind in base.pairs(binds) do
+  for _, bind in pairs(binds) do
     res, err = sock:bind(bind.host, bind.port)
-    if not res then return nil, err end
-    base.print(("Listening on %s:%s"):format(bind.host, bind.port))
+    if not res then return err end
+    print(("Listening on %s:%s"):format(bind.host, bind.port))
   end
 
   res, err = sock:listen(backlog)
-  if not res then return nil, err end
+  if not res then return err end
 
   sock:settimeout(0)
-  base.table.insert(sockets, sock)
-  listeners[sock] = true
-  return sock
+  add_thread(accept_thread_factory(sock, client_thread))
 end
