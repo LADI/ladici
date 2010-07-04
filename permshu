@@ -23,13 +23,16 @@ require 'remotes'
 require 'irc'
 require 'locations'
 
-locations.regisyter('freenode',
-                    'IRC',
-                    {host='chat.freenode.net', nick='nedko_lua', realname='nedko@arnaudov.name', join='#ladi,#permeshu'})
-locations.regisyter('unibg',
-                    'IRC',
-                    {host='irc.itdnet.net', nick='nedko_lua'}
+locations.register('freenode',
+                   'IRC',
+                   {host='chat.freenode.net', nick='nedko_lua', realname='nedko@arnaudov.name', join='#permeshu'})
+locations.register('unibg',
+                   'IRC',
+                   {host='irc.itdnet.net', nick='nedko_lua'})
 
-irc.create_server()
-
-while remotes.dispatch() do end
+err = irc.create_server()
+if err then
+  print(err)
+else
+  while remotes.dispatch() do end
+end

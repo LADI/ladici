@@ -20,6 +20,7 @@
 
 require 'misc'
 require 'protocols'
+require 'hub'
 
 module('irc', package.seeall)
 
@@ -33,7 +34,7 @@ local function parse_and_consume(buffer, regexp)
   return rest, a1, a2, a3, a4
 end
 
-local function process_raw_msg(command_handlers, raw_msg)
+local function process_raw_msg(command_handlers, raw_msg, deliver)
   -- print('----receive----' .. tostring(raw_msg))
 
   local prefix
@@ -79,13 +80,13 @@ local function process_raw_msg(command_handlers, raw_msg)
         msg = msg .. ' [' .. param .. ']'
       end
     end
-    print(msg)
+    deliver(msg)
   end
 
   return ret
 end
 
-local function receive(peer, command_handlers)
+local function receive(peer, command_handlers, deliver)
   local buffer
   while true do
     local raw_msg
@@ -106,7 +107,7 @@ local function receive(peer, command_handlers)
       -- print('[' .. tostring(buffer) .. ']')
       -- print('[' .. tostring(raw_msg) .. ']')
       if not raw_msg then break end
-      if process_raw_msg(command_handlers, raw_msg) then return end
+      if process_raw_msg(command_handlers, raw_msg, deliver) then return end
     end
   end
   assert(false)
@@ -117,16 +118,18 @@ local function send_to_peer(peer, msg)
   peer.send(msg .. "\r\n")
 end
 
-function connect(args)
-  assert(args.host)
-  assert(args.nick)
+function connect(location)
+  assert(location.args.host)
+  assert(location.args.nick)
 
-  local host = args.host
-  local port = args.port or 6667
-  local nick = args.nick
-  local username = args.username or nick
-  local realname = args.realname or nick
-  local join = args.join
+  local host = location.args.host
+  local port = location.args.port or 6667
+  local nick = location.args.nick
+  local username = location.args.username or nick
+  local realname = location.args.realname or nick
+  local join = location.args.join
+
+  local print = function(msg) hub.deliver(location.name, msg) end
 
   local peer
 
@@ -224,7 +227,7 @@ function connect(args)
                        send(("NICK %s"):format(nick))
                        send(("USER %s %s %s :%s"):format(username, peer.get_local_ip(), host, realname))
                        if join then send("JOIN " .. join) end
-                       err = receive(peer, command_handlers)
+                       err = receive(peer, command_handlers, function(msg) print(msg) end)
                        -- print(err)
                        peer.close()
                        if disconnect_function then
@@ -233,11 +236,14 @@ function connect(args)
                        end
                        peer = nil
                      end)
-  return function(disconnect_function_param)
-           print("Disconnecting from " .. host)
-           peer.close()         -- this will break the receive loop
-           disconnect_function = disconnect_function_param
-         end
+  return {
+    disconnect = function(disconnect_function_param)
+                   print("Disconnecting from " .. host)
+                   peer.close()         -- this will break the receive loop
+                   disconnect_function = disconnect_function_param
+                 end,
+    send = send
+  }
 end
 
 local descriptor = {
@@ -303,11 +309,11 @@ end
 
 function control_channel:disconnect_location(name)
   location = locations.registry[name]
-  assert(location.connected)
-  location.connected(function()
-                       self:send_reply("Location disconnected successfully")
-                       location.connected = nil
-                     end)
+  assert(location.connection)
+  location.connection.disconnect(function()
+                                   self:send_reply("Location disconnected successfully")
+                                   location.connection = nil
+                                 end)
 end
 
 function control_channel:privmsg(command)
@@ -317,7 +323,7 @@ function control_channel:privmsg(command)
       self.peer.accept_disable()
 
       for name,location in pairs(locations.registry) do
-        if location.connected then self:disconnect_location(name) end
+        if location.connection then self:disconnect_location(name) end
       end
 
       send_to_peer(self.peer, 'ERROR :Goodbye!')
@@ -327,7 +333,7 @@ function control_channel:privmsg(command)
   commands['locations'] =
     function()
       for name, dict in pairs(locations.registry) do
-        if dict.connected then status = "connected" else status = "disconnected" end
+        if dict.connection then status = "connected" else status = "disconnected" end
         self:send_reply(("%s\t- %s"):format(name, status))
       end
     end
@@ -336,25 +342,25 @@ function control_channel:privmsg(command)
     function()
       location = locations.registry['freenode']
 
-      if location.connected then
+      if location.connection then
         self:send_reply("Location is already connected")
         return
       end
 
-      context, err = protocols.registry[location.protocol].connect(location.args)
-      assert(context or err)
-      if not context then
+      connection, err = protocols.registry[location.protocol].connect(location)
+      assert(connection or err)
+      if not connection then
         self:send_reply(err)
       else
         self:send_reply("Location connected successfully")
-        location.connected = context
+        location.connection = connection
       end
     end
 
   commands['disconnect'] =
     function()
       location = locations.registry['freenode']
-      if not location.connected then
+      if not location.connection then
         self:send_reply("Location is not connected")
       else
         self:disconnect_location('freenode')
@@ -380,6 +386,7 @@ local function remote_client_thread(peer)
   local nick
   local host = peer.get_ip()
   local channels = {}
+  local control
 
   local function nop() end
   local function unknown_command(prefix, command, params)
@@ -395,12 +402,20 @@ local function remote_client_thread(peer)
     send(msg)
   end
 
+  local function deliver(sender, msg)
+    if not control then return false end
+    control:send_reply(sender .. ': ' .. msg)
+    return true
+  end
+
+  hub.register_delivery(deliver)
+
   local function maybe_welcome()
     if not user or not nick then return end
     send(":permeshu 001 " .. nick .. " Welcome to the Internet Relay Network " .. nick .. "!" .. user .. "@" .. host)
-    c = control_channel:new()
-    c:join(peer, nick)
-    channels[c.name] = c
+    control = control_channel:new()
+    control:join(peer, nick)
+    channels[control.name] = control
   end
 
   local command_handlers = {}
@@ -450,12 +465,12 @@ local function remote_client_thread(peer)
   -- command_handlers['JOIN'] = function(prefix, command, params)
   --                         end
 
-  local err = receive(peer, command_handlers)
+  local err = receive(peer, command_handlers, function(msg) print(msg) end)
   print(("Remote %s disconnected (%s)"):format(peer.get_description(), tostring(err)))
 end
 
 function create_server()
   print('Creating IRC server')
   err = remotes.create_tcp_server(remote_client_thread, {{host='*', port=6667}})
-  if err then error(err) end
+  if err then return err end
 end

@@ -48,5 +48,5 @@ end
 
 function register(descriptor)
   registry[descriptor.name] = descriptor
-  dump()
+  -- dump()
 end

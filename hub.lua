@@ -20,8 +20,20 @@
 
 module(..., package.seeall)
 
-registry = {}
+local deliver_func = nil
 
-function register(name, protocol, args)
-  registry[name] = {name=name, protocol=protocol, args=args}
+function deliver(sender, msg)
+  if not deliver_func or not deliver_func(sender, msg) then
+    print(("'%s' said '%s'"):format(sender, msg))
+  end
+end
+
+function register_delivery(func)
+  assert(type(func) == 'function')
+  deliver_func = func
+end
+
+function unregister_delivery(func)
+  assert(func == deliver_func)
+  deliver_func = nil
 end
