@@ -1,5 +1,5 @@
 #!/usr/bin/env lua
--- -*- Mode: Lua; indent-tabs-mode: t; lua-indent-level: 2 -*-
+-- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
 -- PERsonal MESsage HUb (permshu)
 --
 -- Copyright (C) 2010 Nedko Arnaudov <nedko@arnaudov.name>
@@ -19,27 +19,17 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-require 'socket'
-
 require 'remotes'
 require 'irc'
+require 'locations'
+
+locations.regisyter('freenode',
+                    'IRC',
+                    {host='chat.freenode.net', nick='nedko_lua', realname='nedko@arnaudov.name', join='#ladi,#permeshu'})
+locations.regisyter('unibg',
+                    'IRC',
+                    {host='irc.itdnet.net', nick='nedko_lua'}
 
 irc.create_server()
 
----[[
-connect_args = {
-  host = "irc.itdnet.net",
-  -- host = "chat.freenode.net",
-  nick = "nedko_lua",
-  -- realname = "nedko@arnaudov.name",
-}
-
-err = irc.connect(connect_args)
-if err then print(err) return end
---]]
-
 while remotes.dispatch() do end
-
--- httpm.get_http('download.berlios.de', "/supergrub/super_grub_disk_0.9799.iso.bz2")
--- httpm.get_http('download.berlios.de', "/supergrub/super_grub_disk_hybrid-1.98s1.iso")
--- httpm.dispatch()

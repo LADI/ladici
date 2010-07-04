@@ -1,4 +1,4 @@
--- -*- Mode: Lua; indent-tabs-mode: t; lua-indent-level: 2 -*-
+-- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
 -- PERsonal MESsage HUb (permshu)
 --
 -- Copyright (C) 2010 Nedko Arnaudov <nedko@arnaudov.name>
@@ -18,6 +18,9 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
+require 'misc'
+require 'protocols'
+
 module('irc', package.seeall)
 
 local function parse_and_consume(buffer, regexp)
@@ -30,6 +33,90 @@ local function parse_and_consume(buffer, regexp)
   return rest, a1, a2, a3, a4
 end
 
+local function process_raw_msg(command_handlers, raw_msg)
+  -- print('----receive----' .. tostring(raw_msg))
+
+  local prefix
+  local command
+  local rest = raw_msg
+
+  -- prefix
+  rest, prefix = parse_and_consume(rest, "^:([^ ]*) *")
+  --if prefix then print(("prefix: '%s'"):format(prefix)) end
+  --if rest then print(("rest: '%s'"):format(rest)) end
+
+  -- command and  params
+  rest, command, params = parse_and_consume(rest, "^([^ ]*) *(.*)")
+  --if command then print(("command: '%s'"):format(command)) end
+  --if params then print(("params: '%s'"):format(params)) end
+  assert(not rest)
+
+  params_table = {}
+  local param
+  while params do
+    params, param = parse_and_consume(params, '^:(.*)')
+    if param then table.insert(params_table, param) break end
+    params, param = parse_and_consume(params, '^ *([^ \r\n]+) *')
+    table.insert(params_table, param)
+  end
+
+  local ret
+
+  if command_handlers[command] then
+    ret = command_handlers[command](prefix, command, params_table)
+  elseif command_handlers[''] then
+    ret = command_handlers[''](prefix, command, params_table)
+  else
+    -- print('----receive----' .. tostring(raw_msg))
+    -- if prefix then print(("prefix: '%s'"):format(prefix)) end
+    -- print(("command: '%s'"):format(command))
+    -- for _, param in pairs(params_table) do print('[' .. param .. ']') end
+    msg = 'Unknown msg [' .. command .. ']'
+    if prefix then msg = msg .. ', prefix: [' .. prefix .. ']' end
+    if params_table then
+      msg = msg .. ', params:'
+      for _,param in pairs(params_table) do
+        msg = msg .. ' [' .. param .. ']'
+      end
+    end
+    print(msg)
+  end
+
+  return ret
+end
+
+local function receive(peer, command_handlers)
+  local buffer
+  while true do
+    local raw_msg
+    local data, err = peer.receive(4000)
+    -- print('[' .. tostring(data) .. ']')
+    -- print('[' .. tostring(err) .. ']')
+    if not data then return err end
+
+    if buffer then
+      buffer = buffer .. data
+    else
+      buffer = data
+    end
+
+    -- print('---> [' .. tostring(buffer) .. ']')
+    while buffer do
+      buffer, raw_msg = parse_and_consume(buffer, '^([^\r\n]*)\r\n')
+      -- print('[' .. tostring(buffer) .. ']')
+      -- print('[' .. tostring(raw_msg) .. ']')
+      if not raw_msg then break end
+      if process_raw_msg(command_handlers, raw_msg) then return end
+    end
+  end
+  assert(false)
+end
+
+local function send_to_peer(peer, msg)
+  -- print('-----send------' .. msg)
+  peer.send(msg .. "\r\n")
+end
+
 function connect(args)
   assert(args.host)
   assert(args.nick)
@@ -39,13 +126,11 @@ function connect(args)
   local nick = args.nick
   local username = args.username or nick
   local realname = args.realname or nick
+  local join = args.join
 
   local peer
 
-  local function send(msg)
-    --print('-----send------' .. msg)
-    peer.send(msg .. "\r\n")
-  end
+  local function send(msg) send_to_peer(peer, msg) end
 
   local function print_notice(msg, prefix)
     if msg then
@@ -131,92 +216,242 @@ function connect(args)
   command_handlers['372'] = motd_reply -- MOTD middle
   command_handlers['376'] = motd_reply -- MOTD end
 
-  local function process_raw_msg(raw_msg)
-    --print('----receive----' .. tostring(raw_msg))
-
-    local prefix
-    local command
-    local rest = raw_msg
-
-    -- prefix
-    rest, prefix = parse_and_consume(rest, "^:([^ ]*) *")
-    --if prefix then print(("prefix: '%s'"):format(prefix)) end
-    --if rest then print(("rest: '%s'"):format(rest)) end
-
-    -- command and  params
-    rest, command, params = parse_and_consume(rest, "^([^ ]*) *(.*)")
-    --if command then print(("command: '%s'"):format(command)) end
-    --if params then print(("params: '%s'"):format(params)) end
-    assert(not rest)
-
-    params_table = {}
-    local param
-    while params do
-      params, param = parse_and_consume(params, '^:(.*)')
-      if param then table.insert(params_table, param) break end
-      params, param = parse_and_consume(params, '^ *([^ \r\n]+) *')
-      table.insert(params_table, param)
-    end
-
-    if command_handlers[command] then
-      command_handlers[command](prefix, command, params_table)
-    else
-      print('----receive----' .. tostring(raw_msg))
-      -- if prefix then print(("prefix: '%s'"):format(prefix)) end
-      -- print(("command: '%s'"):format(command))
-      -- for _, param in pairs(params_table) do print('[' .. param .. ']') end
-    end
-
-    return true
-  end
-
   peer, err = remotes.connect_tcp(host, port)
-  if not peer then return err end
+  if not peer then return nil, err end
 
+  local disconnect_function = nil
   remotes.add_thread(function()
-		       send(("NICK %s"):format(nick))
-		       send(("USER %s %s %s :%s"):format(username, peer.get_local_ip(), host, realname))
+                       send(("NICK %s"):format(nick))
+                       send(("USER %s %s %s :%s"):format(username, peer.get_local_ip(), host, realname))
+                       if join then send("JOIN " .. join) end
+                       err = receive(peer, command_handlers)
+                       -- print(err)
+                       peer.close()
+                       if disconnect_function then
+                         -- print("Calling disconnect callback")
+                         disconnect_function()
+                       end
+                       peer = nil
+                     end)
+  return function(disconnect_function_param)
+           print("Disconnecting from " .. host)
+           peer.close()         -- this will break the receive loop
+           disconnect_function = disconnect_function_param
+         end
+end
 
-		       local buffer
-		       while true do
-			 local raw_msg
-			 local data, err = peer.receive(4000)
-			 -- print('[' .. tostring(data) .. ']')
-			 -- print('[' .. tostring(err) .. ']')
-			 if not data then break end
+local descriptor = {
+  name = 'IRC',
+  required_params = {
+    host="IP address or a host name if IRC server",
+    nick="Nickname",
+  },
+  optional_params = {
+    port="TCP port, defaults to 6667",
+    username="Username, defaults to nick",
+    realname="Real name, defaults to nick",
+  },
+  connect=connect,
+}
 
-			 if buffer then
-			   buffer = buffer .. data
-			 else
-			   buffer = data
-			 end
+protocols.register(descriptor)
 
-			 -- print('---> [' .. tostring(buffer) .. ']')
-			 while buffer do
-			   buffer, raw_msg = parse_and_consume(buffer, '^([^\r\n]*)\r\n')
-			   -- print('[' .. tostring(buffer) .. ']')
-			   -- print('[' .. tostring(raw_msg) .. ']')
-			   if not raw_msg then break end
-			   process_raw_msg(raw_msg)
-			 end
-		       end
-		       peer.close()
-		     end)
+channel = {users={}}
+function channel:new()
+  o = {}
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+function channel:set_topic(topic)
+  self.topic = topic
+end
+
+function channel:join(peer, name, nick)
+  self.peer = peer
+  self.name = name
+  self.nick = nick
+  send_to_peer(self.peer, ":" .. self.nick .. " JOIN " .. self.name)
+  send_to_peer(self.peer, ":permeshu 332 " .. self.nick .. ' ' .. self.name .. ' :' .. (self.topic or ''))
+  --self:who()
+end
+
+function channel:who()
+  for nick, user in pairs(self.users) do
+    send_to_peer(self.peer, ":permeshu 353 " .. self.nick .. ' = ' .. self.name .. ' :' .. nick)
+  end
+  send_to_peer(self.peer, ":permeshu 315 " .. self.nick .. ' ' .. self.name .. ' :End of NAMES list')
+end
+
+function channel:mode()
+--  send_to_peer(self.peer, "MODE " .. self.name .. ' +tn')
+end
+
+local control_channel = channel:new()
+
+function control_channel:join(peer, nick)
+  self:set_topic('permeshu control channel')
+  self.users['@permeshu'] = {}
+  self.users[nick] = {}
+  channel.join(self, peer, '&control', nick)
+end
+
+function control_channel:send_reply(msg)
+  send_to_peer(self.peer, ':permeshu PRIVMSG ' .. self.name .. ' :' .. msg)
+end
+
+function control_channel:disconnect_location(name)
+  location = locations.registry[name]
+  assert(location.connected)
+  location.connected(function()
+                       self:send_reply("Location disconnected successfully")
+                       location.connected = nil
+                     end)
+end
+
+function control_channel:privmsg(command)
+  commands = {}
+  commands['quit'] =
+    function()
+      self.peer.accept_disable()
+
+      for name,location in pairs(locations.registry) do
+        if location.connected then self:disconnect_location(name) end
+      end
+
+      send_to_peer(self.peer, 'ERROR :Goodbye!')
+      return true -- break the receive loop
+    end
+
+  commands['locations'] =
+    function()
+      for name, dict in pairs(locations.registry) do
+        if dict.connected then status = "connected" else status = "disconnected" end
+        self:send_reply(("%s\t- %s"):format(name, status))
+      end
+    end
+
+  commands['connect'] =
+    function()
+      location = locations.registry['freenode']
+
+      if location.connected then
+        self:send_reply("Location is already connected")
+        return
+      end
+
+      context, err = protocols.registry[location.protocol].connect(location.args)
+      assert(context or err)
+      if not context then
+        self:send_reply(err)
+      else
+        self:send_reply("Location connected successfully")
+        location.connected = context
+      end
+    end
+
+  commands['disconnect'] =
+    function()
+      location = locations.registry['freenode']
+      if not location.connected then
+        self:send_reply("Location is not connected")
+      else
+        self:disconnect_location('freenode')
+      end
+    end
+
+  if commands[command] then
+    return commands[command]()
+  else
+    msg = 'Unknown control command [' .. command .. ']'
+    print(msg)
+    self:send_reply(msg)
+  end
 end
 
 local function remote_client_thread(peer)
   print("Remote " .. peer.get_description() .. " connected")
-  peer.send('coroutines rock!\n')
-  local err
-  local data
-  while true do
-    data, err = peer.receive(4000)
-    print('[' .. tostring(data) .. ']')
-    print('[' .. tostring(err) .. ']')
-    if not data then break end
+
+  local function send(msg) send_to_peer(peer, msg) end
+
+  local user
+  local realname
+  local nick
+  local host = peer.get_ip()
+  local channels = {}
+
+  local function nop() end
+  local function unknown_command(prefix, command, params)
+    msg = 'Unknown/wrong command [' .. command .. ']'
+    if prefix then msg = msg .. ', prefix: [' .. prefix .. ']' end
+    if params then
+      msg = msg .. ', params:'
+      for _,param in pairs(params) do
+        msg = msg .. ' [' .. param .. ']'
+      end
+    end
+    print(msg)
+    send(msg)
   end
-  print(("Remote %s:%s disconnected (%s)"):format(peer.get_description(), tostring(err)))
-  sock:close()
+
+  local function maybe_welcome()
+    if not user or not nick then return end
+    send(":permeshu 001 " .. nick .. " Welcome to the Internet Relay Network " .. nick .. "!" .. user .. "@" .. host)
+    c = control_channel:new()
+    c:join(peer, nick)
+    channels[c.name] = c
+  end
+
+  local command_handlers = {}
+
+  command_handlers[''] = unknown_command
+
+  command_handlers['USER'] = function(prefix, command, params)
+                               user = params[1]
+                               realname = params[4]
+                               if not nick then unknown_command(prefix, command, params) return end
+                               maybe_welcome()
+                             end
+  command_handlers['PASS'] = nop
+  command_handlers['NICK'] = function(prefix, command, params)
+                               nick = params[1]
+                               if not nick then unknown_command(prefix, command, params) return end
+                               maybe_welcome()
+                             end
+
+  command_handlers['QUIT'] = function(prefix, command, params)
+                               print(("Client is terminating its session [%s]"):format(tostring(params[1])))
+                               send('ERROR :Goodbye!')
+                               return true -- break the receive loop
+                             end
+
+  command_handlers['PRIVMSG'] = function(prefix, command, params)
+                                  if not params[1] or not params[2] then unknown_command(prefix, command, params) return end
+                                  if channels[params[1]] then
+                                    return channels[params[1]]:privmsg(params[2])
+                                  else
+                                    print(("client sends '%s' to '%s'"):format(params[2], params[1]))
+                                  end
+                                end
+
+  command_handlers['WHO'] =
+    function(prefix, command, params)
+      if not params[1] or not channels[params[1]] then unknown_command(prefix, command, params) return end
+      channels[params[1]]:who()
+    end
+
+  command_handlers['MODE'] =
+    function(prefix, command, params)
+      if not params[1] or not channels[params[1]] then unknown_command(prefix, command, params) return end
+      channels[params[1]]:mode()
+    end
+
+  -- command_handlers['JOIN'] = function(prefix, command, params)
+  --                         end
+
+  local err = receive(peer, command_handlers)
+  print(("Remote %s disconnected (%s)"):format(peer.get_description(), tostring(err)))
 end
 
 function create_server()

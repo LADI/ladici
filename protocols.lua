@@ -18,16 +18,35 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-module('misc', package.seeall)
+module(..., package.seeall)
 
-function dump_table(t)
-  print('--')
-  -- print(#t)
-  -- print('--')
-  for i,v in pairs(t) do
-    print(("%30s - %s"):format(tostring(i), tostring(v)))
+registry = {}
+
+local function dump_params(name, t)
+  print('\t'..name)
+  for i, v in pairs(t) do
+    print(("\t\t%s\t- %s"):format(tostring(i), tostring(v)))
   end
-  print('--')
 end
 
-function trim(s) return s:gsub("^%s*(.-)%s*$", "%1") end
+local function dump()
+  for _,t in pairs(registry) do
+    print('----')
+    print(t.name)
+    for i, v in pairs(t) do
+      if i == 'required_params' then
+        dump_params("Required params", v)
+      elseif i == 'optional_params' then
+        dump_params("Optional params", v)
+      else
+        --print(("%30s - %s"):format(tostring(i), tostring(v)))
+      end
+    end
+  end
+  print('----')
+end
+
+function register(descriptor)
+  registry[descriptor.name] = descriptor
+  dump()
+end

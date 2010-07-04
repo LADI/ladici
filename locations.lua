@@ -18,16 +18,10 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-module('misc', package.seeall)
+module(..., package.seeall)
 
-function dump_table(t)
-  print('--')
-  -- print(#t)
-  -- print('--')
-  for i,v in pairs(t) do
-    print(("%30s - %s"):format(tostring(i), tostring(v)))
-  end
-  print('--')
+registry = {}
+
+function register(name, protocol, args)
+  registry[name] = {protocol=protocol, args=args}
 end
-
-function trim(s) return s:gsub("^%s*(.-)%s*$", "%1") end

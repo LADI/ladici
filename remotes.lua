@@ -18,7 +18,9 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-require('misc')
+require 'socket'
+require 'misc'
+
 module('remotes', package.seeall)
 
 local threads = {}
@@ -36,13 +38,14 @@ local function receive(sock, block_size)
     local partial
     sock:settimeout(0)            -- do not block
     block, status, partial = sock:receive(block_size)
-    -- print('[' .. tostring(block) .. ']')
-    -- print('[' .. tostring(status) .. ']')
-    -- print('[' .. tostring(partial) .. ']')
+    -- print('block   [' .. tostring(block) .. ']')
+    -- print('status  [' .. tostring(status) .. ']')
+    -- print('partial [' .. tostring(partial) .. ']')
     if block and string.len(block) == 0 then block = nil end
     block = block or partial
     if block and string.len(block) == 0 then block = nil end
-    if not block and status == 'timeout' then
+    if block then break end
+    if status == 'timeout' then
       -- if data is not available, tell the dispatcher so it can eventually wait on this socket
       coroutine.yield(sock)
     else
@@ -53,19 +56,26 @@ local function receive(sock, block_size)
 end
 
 local function accept_thread_factory(sock, client_thread)
+  local accept_enabled = true
   return
   function()
-    while true do
+    while accept_enabled do
       sock:settimeout(0)          -- do not block
       local client, err = sock:accept()
       if client then
         add_thread(function()
-                     local pair = {
+                     local ip = client:getpeername()
+                     local description = ("%s:%s"):format(client:getpeername())
+                     local peer = {
                        send = function(data) client:send(data) end,
                        receive = function(block_size) return receive(client, block_size) end,
-                       get_description = function() return ("%s:%s"):format(client:getpeername()) end,
+                       get_description = function() return description end,
+                       get_ip = function() return ip end,
+                       accept_disable = function() accept_enabled = false end
                      }
-                     client_thread(pair)
+                     client_thread(peer)
+                     -- print('closing client socket')
+                     client:close()
                    end)
       elseif err == 'timeout' then
         -- if data is not available, tell the dispatcher so it can eventually wait on this socket
@@ -90,7 +100,7 @@ function dispatch()
     -- print('resuming ' .. tostring(threads[i]))
     local status, sock = coroutine.resume(threads[i])
     if not sock then            -- thread finished its task?
-      -- print(('finished %s (%s)'):format(tostring(threads[i]), sock))
+      -- print(('finished %s'):format(tostring(threads[i])))
       table.remove(threads, i)
       -- misc.dump_table(threads)
     else
@@ -130,6 +140,9 @@ function create_tcp_server(client_thread, binds, backlog)
 
   sock, err = socket.tcp()
   if not sock then return err end
+
+  res, err = sock:setoption('linger', {on=true, timeout=0})
+  if not res then return err end
 
   for _, bind in pairs(binds) do
     res, err = sock:bind(bind.host, bind.port)
