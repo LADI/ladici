@@ -311,7 +311,7 @@ function control_channel:disconnect_location(name)
   location = locations.registry[name]
   assert(location.connection)
   location.connection.disconnect(function()
-                                   self:send_reply("Location disconnected successfully")
+                                   self:send_reply("Location [" .. name .. "] disconnected successfully")
                                    location.connection = nil
                                  end)
 end
@@ -352,7 +352,7 @@ function control_channel:privmsg(command)
       if not connection then
         self:send_reply(err)
       else
-        self:send_reply("Location connected successfully")
+        self:send_reply("Location [" .. location.name .. "] connected successfully")
         location.connection = connection
       end
     end
