@@ -162,6 +162,11 @@ function connect(location)
                                print(('MODE:    [%s] [%s]'):format(params[1], params[2]))
                              end
 
+  command_handlers['PRIVMSG'] =
+    function(prefix, command, params)
+      print(("'%s' -> '%s' : '%s'"):format(tostring(prefix), params[1], params[2]))
+    end
+
   -- welcome
   command_handlers['001'] = function(prefix, command, params) print_notice(table.concat(params, ' ', 2), 'WELCOME: ') end
   -- your host
