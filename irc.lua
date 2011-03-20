@@ -167,6 +167,15 @@ function connect(location)
       print(("'%s' -> '%s' : '%s'"):format(tostring(prefix), params[1], params[2]))
     end
 
+  command_handlers['JOIN'] = function(prefix, command, params)
+                               print(("joined '%s'"):format(params[1]))
+                               local channel = channel:new()
+                               channel.users['@permeshu'] = {}
+                               channel.users[nick] = {}
+                               channel:join(peer, params[1], nick)
+                               channels[channel.name] = channel
+                             end
+
   -- welcome
   command_handlers['001'] = function(prefix, command, params) print_notice(table.concat(params, ' ', 2), 'WELCOME: ') end
   -- your host
