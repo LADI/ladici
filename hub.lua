@@ -67,14 +67,14 @@ function control_channel:send_reply(msg)
   interface.channel_send_msg(self.name, 'permeshu', msg)
 end
 
--- function control_channel:disconnect_location(name)
---   location = locations.registry[name]
---   assert(location.connection)
---   location.connection.disconnect(function()
---                                    self:send_reply("Location [" .. name .. "] disconnected successfully")
---                                    location.connection = nil
---                                  end)
--- end
+function control_channel:disconnect_location(name)
+  location = locations.registry[name]
+  assert(location.connection)
+  location.connection.disconnect(function()
+                                   self:send_reply("Location [" .. name .. "] disconnected successfully")
+                                   location.connection = nil
+                                 end)
+end
 
 function control_channel:privmsg(command)
   commands = {}
