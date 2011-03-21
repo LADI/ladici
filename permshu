@@ -20,8 +20,9 @@
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
 require 'remotes'
-require 'irc'
 require 'locations'
+require 'irc_client'
+require 'irc_server'
 
 locations.register('freenode',
                    'IRC',
@@ -30,7 +31,7 @@ locations.register('unibg',
                    'IRC',
                    {host='irc.itdnet.net', nick='nedko_lua'})
 
-err = irc.create_server()
+err = irc_server.create()
 if err then
   print(err)
 else
