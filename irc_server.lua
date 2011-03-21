@@ -112,7 +112,7 @@ local function remote_client_thread(peer)
         irc.send_to_peer(peer, ":permeshu 353 " .. nick .. ' = ' .. channel.name .. ' :' .. unick)
       end
       irc.send_to_peer(peer, ":permeshu 353 " .. nick .. ' = ' .. channel.name .. ' :' .. nick)
-      irc.send_to_peer(peer, ":permeshu 315 " .. nick .. ' ' .. channel.name .. ' :End of NAMES list')
+      irc.send_to_peer(peer, ":permeshu 366 " .. nick .. ' ' .. channel.name .. ' :End of NAMES list')
     end
 
   command_handlers['MODE'] =
