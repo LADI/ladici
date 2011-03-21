@@ -18,12 +18,9 @@
 -- or write to the Free Software Foundation, Inc.,
 -- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-require 'protocols'
-require 'hub'
-
 module('irc_client', package.seeall)
 
-function connect(location)
+local function connect(location)
   assert(location.args.host)
   assert(location.args.nick)
 
@@ -180,3 +177,5 @@ local descriptor = {
 }
 
 protocols.register(descriptor)
+
+return {}                       -- nothing directly public here
