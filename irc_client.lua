@@ -66,16 +66,15 @@ local function connect(location)
 
   command_handlers['PRIVMSG'] =
     function(prefix, command, params)
-      print(("'%s' -> '%s' : '%s'"):format(tostring(prefix), params[1], params[2]))
+      nick, user, host = irc.parse_nick_prefix(prefix)
+      print(("'%s' -> '%s' : '%s'"):format(nick, params[1], params[2]))
     end
 
   command_handlers['JOIN'] = function(prefix, command, params)
-                               print(("'%s' joined '%s'"):format(prefix, params[1]))
-                               -- local channel = channel:new()
-                               -- channel.users['@permeshu'] = {}
-                               -- channel.users[nick] = {}
-                               -- channel:join(peer, params[1], nick)
-                               -- channels[channel.name] = channel
+                               nick, user, host = irc.parse_nick_prefix(prefix)
+
+                               print(("'%s':'%s':'%s' joined '%s'"):format(tostring(nick), tostring(user), tostring(host), params[1]))
+                               hub.join(location.name .. '/' .. params[1], nick)
                              end
 
   -- welcome

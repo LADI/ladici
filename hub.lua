@@ -24,30 +24,31 @@ module(..., package.seeall)
 
 local interface = nil
 
-channel = {users={}}
-function channel:new(o)
+channel_cls = {}
+function channel_cls:new(o)
   o = o or {}
+  if not o.users then o.users = {} end
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
-function channel:set_name(name)
+function channel_cls:set_name(name)
   self.name = name
 end
 
-function channel:set_topic(topic)
+function channel_cls:set_topic(topic)
   self.topic = topic
 end
 
-function channel:attach(interface)
+function channel_cls:attach()
+  if not interface then return end
   print(("attaching channel '%s'"):format(tostring(self.name)))
   interface.channel_join(self.name)
   interface.channel_set_topic(self.name, self.topic)
-  --self:who()
 end
 
-function channel:get_users()
+function channel_cls:get_users()
   users = {}
   for nick, user in pairs(self.users) do
     users[nick] = user
@@ -55,15 +56,14 @@ function channel:get_users()
   return users
 end
 
-function channel:mode()
+function channel_cls:mode()
 --  send_to_peer(self.peer, "MODE " .. self.name .. ' +tn')
 end
 
-local control_channel = channel:new{name = '&control', topic = 'permeshu control channel'}
-control_channel.users['@permeshu'] = {}
+local control_channel = channel_cls:new{name = '&control', topic = 'permeshu control channel', users = {['@permeshu'] = {}}}
 
 function control_channel:send_reply(msg)
-  if not interface then print(msg) end
+  if not interface then print(msg) return end
   interface.channel_send_msg(self.name, 'permeshu', msg)
 end
 
@@ -132,7 +132,7 @@ end
 
 local channels = {}
 
-function join(channel)
+local function register_channel(channel)
   channels[channel.name] = channel
 end
 
@@ -140,10 +140,23 @@ function get_channel(channel)
   return channels[channel]
 end
 
-join(control_channel)
+register_channel(control_channel)
 
 function deliver(sender, msg)
   control_channel:send_reply(sender .. ': ' .. msg)
+end
+
+function join(channel_name, nick)
+  channel = get_channel(channel_name)
+  if not channel then
+    channel = channel_cls:new{name = channel_name}
+    register_channel(channel)
+    channel:attach()
+  end
+
+  if not channel.users[nick] then
+    channel.users[nick] = {}
+  end
 end
 
 function attach_interface(iface)
@@ -151,7 +164,7 @@ function attach_interface(iface)
   interface = iface
 
   for name, obj in pairs(channels) do
-    obj:attach(interface)
+    obj:attach()
   end
 end
 

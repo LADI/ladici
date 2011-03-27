@@ -30,6 +30,25 @@ local function parse_and_consume(buffer, regexp)
   return rest, a1, a2, a3, a4
 end
 
+function parse_nick_prefix(prefix)
+  rest = prefix
+  b, e, host = rest:find('@(.+)')
+  if not b then
+    host = nil
+  else
+    rest = rest:sub(0, b - 1)
+  end
+  b, e, user = rest:find('!(.+)')
+  if not b then
+    user = nil
+    nick = rest
+  else
+    nick = rest:sub(0, b - 1)
+  end
+
+  return nick, user, host
+end
+
 local function process_raw_msg(command_handlers, raw_msg, deliver)
   -- print('----receive----' .. tostring(raw_msg))
 
