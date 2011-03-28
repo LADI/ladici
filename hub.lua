@@ -60,11 +60,38 @@ function channel_cls:mode()
 --  send_to_peer(self.peer, "MODE " .. self.name .. ' +tn')
 end
 
+function channel_cls:outgoing_message(msg, receiver)
+  print(('outgoing message for %s: "%s"'):format(receiver, msg))
+end
+
 local control_channel = channel_cls:new{name = '&control', topic = 'permeshu control channel', users = {['@permeshu'] = {}}}
 
-function control_channel:send_reply(msg)
-  if not interface then print(msg) return end
-  interface.channel_send_msg(self.name, 'permeshu', msg)
+function control_channel:send_reply(msg, location, sender, channel)
+  if not interface then
+    if location then
+      if not sender then
+        msg = location .. ": " .. msg
+      elseif not channel then
+        msg = ('%s said "%s"'):format(sender, msg)
+      else
+        msg = ('%s said in #%s "%s"'):format(sender, channel, msg)
+      end
+    end
+    print(msg)
+    return
+  end
+
+  if not location then
+    interface.send_msg(msg, 'permeshu', self.name)
+  elseif not sender then
+    interface.send_msg(location .. ": " .. msg, 'permeshu', self.name)
+  elseif not channel then
+    -- private message
+    interface.send_msg(msg, location .. '/' .. sender)
+  else
+    -- channel message
+    interface.send_msg(msg, sender, '#' .. location .. '/' .. channel)
+  end
 end
 
 function control_channel:disconnect_location(name)
@@ -76,7 +103,7 @@ function control_channel:disconnect_location(name)
                                  end)
 end
 
-function control_channel:privmsg(command)
+function control_channel:outgoing_message(command)
   commands = {}
   commands['quit'] =
     function()
@@ -142,11 +169,17 @@ end
 
 register_channel(control_channel)
 
-function deliver(sender, msg)
-  control_channel:send_reply(sender .. ': ' .. msg)
+function deliver(msg, location, sender, channel)
+  control_channel:send_reply(msg, location, sender, channel)
 end
 
-function join(channel_name, nick)
+function outgoing_message(msg, receiver)
+  channel = get_channel(receiver)
+  if channel then channel:outgoing_message(msg, receiver) return end
+end
+
+function join(location, channel_name, nick)
+  channel_name = '#' .. location .. '/' .. channel_name
   channel = get_channel(channel_name)
   if not channel then
     channel = channel_cls:new{name = channel_name}

@@ -31,7 +31,7 @@ local function connect(location)
   local realname = location.args.realname or nick
   local join = location.args.join
 
-  local print = function(msg) hub.deliver(location.name, msg) end
+  local print = function(msg) hub.deliver(msg, location.name) end
 
   local peer
 
@@ -67,14 +67,21 @@ local function connect(location)
   command_handlers['PRIVMSG'] =
     function(prefix, command, params)
       nick, user, host = irc.parse_nick_prefix(prefix)
-      print(("'%s' -> '%s' : '%s'"):format(nick, params[1], params[2]))
+      -- print(("'%s' -> '%s' : '%s'"):format(nick, params[1], params[2]))
+      if params[1]:sub(1, 1) == "#" then
+        channel = params[1]:sub(2)
+      else
+        channel = nil
+      end
+      -- print(("channel is '%s'"):format(tostring(channel)))
+      hub.deliver(params[2], location.name, nick, channel)
     end
 
   command_handlers['JOIN'] = function(prefix, command, params)
                                nick, user, host = irc.parse_nick_prefix(prefix)
 
                                print(("'%s':'%s':'%s' joined '%s'"):format(tostring(nick), tostring(user), tostring(host), params[1]))
-                               hub.join(location.name .. '/' .. params[1], nick)
+                               hub.join(location.name, params[1]:sub(2), nick)
                              end
 
   -- welcome

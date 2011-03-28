@@ -50,7 +50,10 @@ local function remote_client_thread(peer)
   local interface = {
     channel_join = function(channel) irc.send_to_peer(peer, ":" .. nick .. " JOIN " .. channel)  end,
     channel_set_topic = function(channel, topic) irc.send_to_peer(peer, ":permeshu 332 " .. nick .. ' ' .. channel .. ' :' .. (topic or '')) end,
-    channel_send_msg = function(channel, sender, msg) irc.send_to_peer(peer, ':' .. sender .. ' PRIVMSG ' .. channel .. ' :' .. msg) end,
+    send_msg = function(msg, sender, channel)
+                 receiver = channel or nick
+                 irc.send_to_peer(peer, ':' .. sender .. ' PRIVMSG ' .. receiver .. ' :' .. msg)
+               end,
     disconnect =
       function(channel)
         peer.accept_disable()
@@ -99,9 +102,7 @@ local function remote_client_thread(peer)
     function(prefix, command, params)
       msg = params[2]
       if not msg then unknown_command(prefix, command, params) return end
-      channel = hub.get_channel(params[1])
-      if not channel then unknown_command(prefix, command, params) return end -- unknown channel
-      return channel:privmsg(msg)
+      return hub.outgoing_message(msg, params[1])
     end
 
   command_handlers['WHO'] =
