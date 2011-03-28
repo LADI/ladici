@@ -108,6 +108,11 @@ function control_channel:outgoing_message(command)
   commands['quit'] =
     function()
       interface.disconnect()
+
+      for name,location in pairs(locations.registry) do
+        if location.connection then self:disconnect_location(name) end
+      end
+
       return true -- break the receive loop
     end
 
@@ -175,7 +180,7 @@ end
 
 function outgoing_message(msg, receiver)
   channel = get_channel(receiver)
-  if channel then channel:outgoing_message(msg, receiver) return end
+  if channel then return channel:outgoing_message(msg, receiver) end
 end
 
 function join(location, channel_name, nick)

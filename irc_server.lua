@@ -58,10 +58,6 @@ local function remote_client_thread(peer)
       function(channel)
         peer.accept_disable()
 
-        for name,location in pairs(locations.registry) do
-          if location.connection then self:disconnect_location(name) end
-        end
-
         irc.send_to_peer(peer, 'ERROR :Goodbye!')
       end,
   }
