@@ -66,33 +66,8 @@ end
 
 local control_channel = channel_cls:new{name = '&control', topic = 'permeshu control channel', users = {['@permeshu'] = {}}}
 
-function control_channel:send_reply(msg, location, sender, channel)
-  if not interface then
-    if location then
-      if not sender then
-        msg = location.name .. ": " .. msg
-      elseif not channel then
-        msg = ('%s said "%s"'):format(sender, msg)
-      else
-        msg = ('%s said in #%s "%s"'):format(sender, channel, msg)
-      end
-    end
-    print(msg)
-    return
-  end
-
-  -- print(location)
-  if not location then
-    interface.send_msg(msg, 'permeshu', self.name)
-  elseif not sender then
-    interface.send_msg(location.name .. ": " .. msg, 'permeshu', self.name)
-  elseif not channel then
-    -- private message
-    interface.send_msg(msg, location.name .. '/' .. sender)
-  else
-    -- channel message
-    interface.send_msg(msg, sender, '#' .. location.name .. '/' .. channel)
-  end
+function control_channel:send_reply(msg, sender)
+  interface.send_msg(msg, sender or 'permeshu', self.name)
 end
 
 function control_channel:disconnect_location(name)
@@ -176,7 +151,30 @@ end
 register_channel(control_channel)
 
 function incoming_message(msg, location, sender, channel)
-  control_channel:send_reply(msg, location, sender, channel)
+  if not interface then
+    if location then
+      if not sender then
+        msg = location.name .. ": " .. msg
+      elseif not channel then
+        msg = ('%s said "%s"'):format(sender, msg)
+      else
+        msg = ('%s said in #%s "%s"'):format(sender, channel, msg)
+      end
+    end
+    print(msg)
+    return
+  end
+
+  -- print(location)
+  if not sender then
+    control_channel:send_reply(location.name .. ": " .. msg, 'permeshu')
+  elseif not channel then
+    -- private message
+    interface.send_msg(msg, location.name .. '/' .. sender)
+  else
+    -- channel message
+    interface.send_msg(msg, sender, '#' .. location.name .. '/' .. channel)
+  end
 end
 
 function outgoing_message(msg, receiver)
