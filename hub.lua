@@ -70,7 +70,7 @@ function control_channel:send_reply(msg, location, sender, channel)
   if not interface then
     if location then
       if not sender then
-        msg = location .. ": " .. msg
+        msg = location.name .. ": " .. msg
       elseif not channel then
         msg = ('%s said "%s"'):format(sender, msg)
       else
@@ -81,16 +81,17 @@ function control_channel:send_reply(msg, location, sender, channel)
     return
   end
 
+  -- print(location)
   if not location then
     interface.send_msg(msg, 'permeshu', self.name)
   elseif not sender then
-    interface.send_msg(location .. ": " .. msg, 'permeshu', self.name)
+    interface.send_msg(location.name .. ": " .. msg, 'permeshu', self.name)
   elseif not channel then
     -- private message
-    interface.send_msg(msg, location .. '/' .. sender)
+    interface.send_msg(msg, location.name .. '/' .. sender)
   else
     -- channel message
-    interface.send_msg(msg, sender, '#' .. location .. '/' .. channel)
+    interface.send_msg(msg, sender, '#' .. location.name .. '/' .. channel)
   end
 end
 
@@ -184,7 +185,7 @@ function outgoing_message(msg, receiver)
 end
 
 function join(location, channel_name, nick)
-  channel_name = '#' .. location .. '/' .. channel_name
+  channel_name = '#' .. location.name .. '/' .. channel_name
   channel = get_channel(channel_name)
   if not channel then
     channel = channel_cls:new{name = channel_name}
