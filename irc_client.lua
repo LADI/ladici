@@ -31,7 +31,7 @@ local function connect(location)
   local realname = location.args.realname or nick
   local join = location.args.join
 
-  local print = function(msg) hub.deliver(msg, location.name) end
+  local print = function(msg) hub.incoming_message(msg, location.name) end
 
   local peer
 
@@ -74,7 +74,7 @@ local function connect(location)
         channel = nil
       end
       -- print(("channel is '%s'"):format(tostring(channel)))
-      hub.deliver(params[2], location.name, nick, channel)
+      hub.incoming_message(params[2], location.name, nick, channel)
     end
 
   command_handlers['JOIN'] = function(prefix, command, params)

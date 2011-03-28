@@ -174,7 +174,7 @@ end
 
 register_channel(control_channel)
 
-function deliver(msg, location, sender, channel)
+function incoming_message(msg, location, sender, channel)
   control_channel:send_reply(msg, location, sender, channel)
 end
 
