@@ -1,22 +1,7 @@
 -- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
--- PERsonal MESsage HUb (permshu)
---
--- Copyright (C) 2010, 2011 Nedko Arnaudov <nedko@arnaudov.name>
---
--- permshu is free software; you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation; either version 2 of the License, or
--- (at your option) any later version.
---
--- permshu is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with permshu. If not, see <http://www.gnu.org/licenses/>
--- or write to the Free Software Foundation, Inc.,
--- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+-- LADI Continuous Integration (ladici)
+-- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
+-- SPDX-License-Identifier: GPL-2.0-or-later
 
 require 'misc'
 
@@ -64,10 +49,10 @@ function channel_cls:outgoing_message(msg, receiver)
   print(('outgoing message for %s: "%s"'):format(receiver, msg))
 end
 
-local control_channel = channel_cls:new{name = '&control', topic = 'permeshu control channel', users = {['@permeshu'] = {}}}
+local control_channel = channel_cls:new{name = '&control', topic = 'ladici control channel', users = {['@ladici'] = {}}}
 
 function control_channel:send_reply(msg, sender)
-  interface.send_msg(msg, sender or 'permeshu', self.name)
+  interface.send_msg(msg, sender or 'ladici', self.name)
 end
 
 function control_channel:disconnect_location(name)
@@ -167,7 +152,7 @@ function incoming_message(msg, location, sender, channel)
 
   -- print(location)
   if not sender then
-    control_channel:send_reply(location.name .. ": " .. msg, 'permeshu')
+    control_channel:send_reply(location.name .. ": " .. msg, 'ladici')
   elseif not channel then
     -- private message
     interface.send_msg(msg, location.name .. '/' .. sender)

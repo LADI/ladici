@@ -1,22 +1,7 @@
 -- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
--- PERsonal MESsage HUb (permshu)
---
--- Copyright (C) 2010, 2011 Nedko Arnaudov <nedko@arnaudov.name>
---
--- permshu is free software; you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation; either version 2 of the License, or
--- (at your option) any later version.
---
--- permshu is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with permshu. If not, see <http://www.gnu.org/licenses/>
--- or write to the Free Software Foundation, Inc.,
--- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+-- LADI Continuous Integration (ladici)
+-- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
+-- SPDX-License-Identifier: GPL-2.0-or-later
 
 require 'hub'
 require 'irc'
@@ -49,7 +34,7 @@ local function remote_client_thread(peer)
 
   local interface = {
     channel_join = function(channel) irc.send_to_peer(peer, ":" .. nick .. " JOIN " .. channel)  end,
-    channel_set_topic = function(channel, topic) irc.send_to_peer(peer, ":permeshu 332 " .. nick .. ' ' .. channel .. ' :' .. (topic or '')) end,
+    channel_set_topic = function(channel, topic) irc.send_to_peer(peer, ":ladici 332 " .. nick .. ' ' .. channel .. ' :' .. (topic or '')) end,
     send_msg = function(msg, sender, channel)
                  receiver = channel or nick
                  irc.send_to_peer(peer, ':' .. sender .. ' PRIVMSG ' .. receiver .. ' :' .. msg)
@@ -65,7 +50,7 @@ local function remote_client_thread(peer)
 
   local function maybe_welcome()
     if not user or not nick then return end
-    send(":permeshu 001 " .. nick .. " Welcome to the Internet Relay Network " .. nick .. "!" .. user .. "@" .. host)
+    send(":ladici 001 " .. nick .. " Welcome to the Internet Relay Network " .. nick .. "!" .. user .. "@" .. host)
 
     hub.attach_interface(interface)
     attached = true
@@ -106,10 +91,10 @@ local function remote_client_thread(peer)
       channel = hub.get_channel(params[1])
       if not channel then unknown_command(prefix, command, params) return end -- unknown channel
       for unick, uobj in pairs(channel.get_users(channel)) do
-        irc.send_to_peer(peer, ":permeshu 353 " .. nick .. ' = ' .. channel.name .. ' :' .. unick)
+        irc.send_to_peer(peer, ":ladici 353 " .. nick .. ' = ' .. channel.name .. ' :' .. unick)
       end
-      irc.send_to_peer(peer, ":permeshu 353 " .. nick .. ' = ' .. channel.name .. ' :' .. nick)
-      irc.send_to_peer(peer, ":permeshu 366 " .. nick .. ' ' .. channel.name .. ' :End of NAMES list')
+      irc.send_to_peer(peer, ":ladici 353 " .. nick .. ' = ' .. channel.name .. ' :' .. nick)
+      irc.send_to_peer(peer, ":ladici 366 " .. nick .. ' ' .. channel.name .. ' :End of NAMES list')
     end
 
   command_handlers['MODE'] =

@@ -1,0 +1,23 @@
+#!/usr/bin/env lua
+-- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
+-- LADI Continuous Integration (ladici)
+-- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
+-- SPDX-License-Identifier: GPL-2.0-or-later
+
+require 'protocols'
+require 'hub'
+require 'remotes'
+require 'locations'
+require 'irc_client'
+require 'irc_server'
+
+locations.register('localhost',
+                   'IRC',
+                   {host='localhost', nick='ladici', realname='Operator Real Name', join='#ladi'})
+
+err = irc_server.create()
+if err then
+  print(err)
+else
+  while remotes.dispatch() do end
+end
