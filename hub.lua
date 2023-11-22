@@ -5,8 +5,6 @@
 
 require 'misc'
 
-module(..., package.seeall)
-
 local interface = nil
 
 channel_cls = {}
@@ -70,49 +68,49 @@ function control_channel:outgoing_message(command)
     function()
       interface.disconnect()
 
-      for name,location in pairs(locations.registry) do
-        if location.connection then self:disconnect_location(name) end
-      end
+      -- for name,location in pairs(locations.registry) do
+      --   if location.connection then self:disconnect_location(name) end
+      -- end
 
       return true -- break the receive loop
     end
 
-  commands['locations'] =
-    function()
-      for name, dict in pairs(locations.registry) do
-        if dict.connection then status = "connected" else status = "disconnected" end
-        self:send_reply(("%s\t- %s"):format(name, status))
-      end
-    end
+  -- commands['locations'] =
+  --   function()
+  --     for name, dict in pairs(locations.registry) do
+  --       if dict.connection then status = "connected" else status = "disconnected" end
+  --       self:send_reply(("%s\t- %s"):format(name, status))
+  --     end
+  --   end
 
-  commands['connect'] =
-    function()
-      location = locations.registry['freenode']
+  -- commands['connect'] =
+  --   function()
+  --     location = locations.registry['freenode']
 
-      if location.connection then
-        self:send_reply("Location is already connected")
-        return
-      end
+  --     if location.connection then
+  --       self:send_reply("Location is already connected")
+  --       return
+  --     end
 
-      connection, err = protocols.registry[location.protocol].connect(location)
-      assert(connection or err)
-      if not connection then
-        self:send_reply(err)
-      else
-        self:send_reply("Location [" .. location.name .. "] connected successfully")
-        location.connection = connection
-      end
-    end
+  --     connection, err = protocols.registry[location.protocol].connect(location)
+  --     assert(connection or err)
+  --     if not connection then
+  --       self:send_reply(err)
+  --     else
+  --       self:send_reply("Location [" .. location.name .. "] connected successfully")
+  --       location.connection = connection
+  --     end
+  --   end
 
-  commands['disconnect'] =
-    function()
-      location = locations.registry['freenode']
-      if not location.connection then
-        self:send_reply("Location is not connected")
-      else
-        self:disconnect_location('freenode')
-      end
-    end
+  -- commands['disconnect'] =
+  --   function()
+  --     location = locations.registry['freenode']
+  --     if not location.connection then
+  --       self:send_reply("Location is not connected")
+  --     else
+  --       self:disconnect_location('freenode')
+  --     end
+  --   end
 
   if commands[command] then
     return commands[command]()
@@ -195,3 +193,12 @@ function detach_interface(iface)
   assert(interface == iface)
   interface = nil
 end
+
+return {
+  attach_interface = attach_interface,
+  detach_interface = detach_interface,
+  incoming_message = incoming_message,
+  outgoing_message = outgoing_message,
+  get_channel = get_channel,
+  join = join,
+}

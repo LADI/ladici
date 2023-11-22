@@ -3,7 +3,7 @@
 -- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
 -- SPDX-License-Identifier: GPL-2.0-or-later
 
-module('irc_client', package.seeall)
+--module('irc_client', package.seeall)
 
 local function connect(location)
   assert(location.args.host)
@@ -167,6 +167,4 @@ local descriptor = {
   connect=connect,
 }
 
-protocols.register(descriptor)
-
-return {}                       -- nothing directly public here
+return descriptor

@@ -4,18 +4,42 @@
 -- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
 -- SPDX-License-Identifier: GPL-2.0-or-later
 
-require 'protocols'
-require 'hub'
-require 'remotes'
-require 'locations'
-require 'irc_client'
-require 'irc_server'
+local protocols = require 'protocols'
+--local hub = require 'hub'
+local remotes  = require 'remotes'
+local locations = require 'locations'
+local irc_client = require 'irc_client'
+local irc_server = require 'irc_server'
+local http_server = require 'http_server'
+local misc = require 'misc'
 
-locations.register('localhost',
-                   'IRC',
-                   {host='localhost', nick='ladici', realname='Operator Real Name', join='#ladi'})
+local homedir = os.getenv('HOME')
+if not homedir then
+  print("HOME env var not set")
+  os.exit(1)
+end
 
-err = irc_server.create()
+-- Have one config file per user, one for the runner and one per worker
+success, config = pcall(dofile, homedir .. '/.ladici')
+if not success then
+  print("Warning: " .. err)
+--else
+--  misc.dump_table(config)
+end
+
+-- misc.dump_table(protocols)
+-- misc.dump_table(remotes)
+-- misc.dump_table(locations)
+-- misc.dump_table(irc_client)
+-- misc.dump_table(irc_server)
+
+protocols.register(irc_client)
+
+-- locations.register('localhost',
+--                    'IRC',
+--                    {host='localhost', nick='ladici', realname='Operator Real Name', join='#ladi'})
+
+err = http_server.create(remotes)
 if err then
   print(err)
 else

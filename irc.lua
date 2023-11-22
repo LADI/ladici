@@ -3,18 +3,6 @@
 -- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
 -- SPDX-License-Identifier: GPL-2.0-or-later
 
-module('irc', package.seeall)
-
-local function parse_and_consume(buffer, regexp)
-  local b = 0
-  local e = 0
-  b, e, a1, a2, a3, a4 = buffer:find(regexp)
-  if not b then return buffer end
-  rest = buffer:sub(e + 1)
-  if rest == '' then rest = nil end
-  return rest, a1, a2, a3, a4
-end
-
 function parse_nick_prefix(prefix)
   rest = prefix
   b, e, host = rest:find('@(.+)')
@@ -117,3 +105,8 @@ function send_to_peer(peer, msg)
   -- print('-----send------' .. msg)
   peer.send(msg .. "\r\n")
 end
+
+return {
+  receive = receive,
+  send_to_peer = send_to_peer,
+}

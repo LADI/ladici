@@ -3,10 +3,10 @@
 -- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
 -- SPDX-License-Identifier: GPL-2.0-or-later
 
-require 'socket'
+local socket = require 'socket'
 -- require 'misc'
 
-module('remotes', package.seeall)
+--module('remotes', package.seeall)
 
 local threads = {}
 
@@ -127,7 +127,8 @@ function create_tcp_server(client_thread, binds, backlog)
   if not sock then return err end
 
   res, err = sock:setoption('linger', {on=true, timeout=0})
-  if not res then return err end
+  --if not res then return err end
+  if not res then print(err) end
 
   for _, bind in pairs(binds) do
     res, err = sock:bind(bind.host, bind.port)
@@ -141,3 +142,8 @@ function create_tcp_server(client_thread, binds, backlog)
   sock:settimeout(0)
   add_thread(accept_thread_factory(sock, client_thread))
 end
+
+return {
+  create_tcp_server = create_tcp_server,
+  dispatch = dispatch,
+}

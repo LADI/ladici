@@ -3,8 +3,6 @@
 -- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
 -- SPDX-License-Identifier: GPL-2.0-or-later
 
-module(..., package.seeall)
-
 registry = {}
 
 local function dump_params(name, t)
@@ -35,3 +33,7 @@ function register(descriptor)
   registry[descriptor.name] = descriptor
   -- dump()
 end
+
+return {
+  register = register,
+}

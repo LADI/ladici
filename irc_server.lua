@@ -3,10 +3,8 @@
 -- SPDX-FileCopyrightText: Copyright © 2010-2023 Nedko Arnaudov */
 -- SPDX-License-Identifier: GPL-2.0-or-later
 
-require 'hub'
-require 'irc'
-
-module('irc_server', package.seeall)
+local hub = require 'hub'
+local irc = require 'irc'
 
 local function remote_client_thread(peer)
   print("Remote " .. peer.get_description() .. " connected")
@@ -86,6 +84,9 @@ local function remote_client_thread(peer)
       return hub.outgoing_message(msg, params[1])
     end
 
+  command_handlers['JOIN'] = function(prefix, command, params)
+    print(("join [%s][%s]"):format(tostring(params[1]), tostring(prefix)))
+  end
   command_handlers['WHO'] =
     function(prefix, command, params)
       channel = hub.get_channel(params[1])
@@ -116,8 +117,12 @@ local function remote_client_thread(peer)
   print(("Remote %s disconnected (%s)"):format(peer.get_description(), tostring(err)))
 end
 
-function create()
+function create(remotes)
   print('Creating IRC server')
   err = remotes.create_tcp_server(remote_client_thread, {{host='*', port=6667}})
   if err then return err end
 end
+
+return {
+  create = create,
+}
