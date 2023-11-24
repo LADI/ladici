@@ -39,7 +39,24 @@ protocols.register(irc_client)
 --                    'IRC',
 --                    {host='localhost', nick='ladici', realname='Operator Real Name', join='#ladi'})
 
-err = http_server.create(remotes)
+local router = function(request)
+  print(request.verb .. " " .. request.path .. " " .. request.proto)
+  misc.dump_table(request.headers)
+
+  local response = {}
+  response.status = 200
+  response.headers = {}
+  response.headers["Server"] = "ladici"
+  response.headers["Connection"] = "close"
+  response.headers["Content-Type"] = "text/plain"
+  response.body = "LADI Continuous Integration\
+WIP\
+yeah!\
+"
+  return response
+end
+
+err = http_server.create(router)
 if err then
   print(err)
 else
