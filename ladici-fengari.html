@@ -1,0 +1,27 @@
+<html>
+<head>
+</head>
+<body>
+<script src="fengari-web.js" type="text/javascript"></script>
+<!-- <script src="/my-script.lua" type="application/lua" async></script> -->
+<script type="application/lua">
+  print("LADICI lua in web browser!")
+  print(package.path)
+  package.path = './?.lua'
+  print(package.path)
+  local js = require "js"
+  --print("js: " .. repr(js))
+  local window = js.global
+  --window.title = "LADICI lua in web browser!"
+  --print("window: " .. repr(window))
+  local document = window.document
+  --print("document: " .. repr(document))
+  local text = document:createTextNode("LADICI lua in web browser!")
+  document.body:appendChild(text)
+  local buildno = require "buildno01"
+  local text = document:createTextNode(buildno.description)
+  document.body:appendChild(text)
+  print("LADICI done")
+</script>
+</body>
+</html>
