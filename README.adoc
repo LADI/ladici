@@ -19,4 +19,4 @@ Concepts:
  * ladici factory - a machine/node (can be the HQ one) where lanes are hosted
  * ladici lane - a chain or DAG of rules & commands to be executed by ladici factories
 
-In simplest case, ladici deployment consists of single machine/node running ladici. This central node, HQ. The process running HQ can also run a factory and is pre-configured so with one that runs lane to create tarballs from sources.
+In simplest case, ladici deployment consists of single machine/node running ladici. The process running HQ can also run a factory and is pre-configured so with one that runs lane to create tarballs from sources.
