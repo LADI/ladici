@@ -20,3 +20,14 @@ Concepts:
  * ladici lane - a chain or DAG of rules & commands to be executed by ladici factories
 
 In simplest case, ladici deployment consists of single machine/node running ladici. The process running HQ can also run a factory and is pre-configured so with one that runs lane to create tarballs from sources.
+
+Usage:
+
+Running "./ladici hq" from source checkout will start the HQ node.
+By default HQ node comes with a HTTP server listening at 127.0.0.1:8010 for read-only HTML server-side scripting generated view.
+
+To run the client-side scripting in WWW browser with JavaScript:
+
+ * Obtain a copy of "fengary-web.js". fengary-web-0.1.4 can be downloaded from https://github.com/fengari-lua/fengari-web/releases/download/v0.1.4/fengari-web.js
+ * Copy fengari-web.js to the same directory that will serve ladici-fengari.html and ladici-fengari.lua
+ * Setup web server to serve static content of the directory where ladici-fengari.html and ladici-fengari.lua and fengari-web.js reside and make ladici-fengari.html the default document.
