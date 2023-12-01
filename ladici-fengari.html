@@ -18,6 +18,7 @@
   --print("document: " .. repr(document))
   local text = document:createTextNode("LADICI lua in web browser!")
   document.body:appendChild(text)
+  document.body:appendChild(document:createElement("br"))
   local buildno = require "buildno01"
   local text = document:createTextNode(buildno.description)
   document.body:appendChild(text)
