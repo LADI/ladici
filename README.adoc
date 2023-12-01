@@ -63,3 +63,7 @@ For simple setups the above works good with /etc/hosts line like:
 ----
 127.0.3.2 ci.myproject.internal
 ----
+
+== Live demo
+
+https://ci.ladish.org/[The LADI pipelines]
