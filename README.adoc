@@ -31,3 +31,26 @@ To run the client-side scripting in WWW browser with JavaScript:
  * Obtain a copy of "fengary-web.js". fengary-web-0.1.4 can be downloaded from https://github.com/fengari-lua/fengari-web/releases/download/v0.1.4/fengari-web.js
  * Copy fengari-web.js to the same directory that will serve ladici-fengari.html and ladici-fengari.lua
  * Setup web server to serve static content of the directory where ladici-fengari.html and ladici-fengari.lua and fengari-web.js reside and make ladici-fengari.html the default document.
+
+Configuring:
+
+Example of configuring the ladici http server to bind at 127.0.3.2 instead of 127.0.0.1
+
+.~/.ladici
+[source,lua]
+----
+-- -*- Mode: Lua; indent-tabs-mode: nil; lua-indent-level: 2 -*-
+return {
+--  mode = 'hq', -- default: 'hq'
+  http_bind = "127.0.3.2",
+--  http_port = 8010, -- default: 8010
+}
+----
+
+For simple setups the above works good with /etc/hosts line like:
+
+./etc/hosts
+[source,txt]
+----
+127.0.3.2 ci.myproject.internal
+----
