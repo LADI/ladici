@@ -49,10 +49,18 @@ local router = function(request)
   response.headers = {}
   response.headers["Server"] = "ladici"
   response.headers["Connection"] = "close"
-  response.headers["Content-Type"] = "text/plain"
-  response.body = "LADI Continuous Integration\
+  response.headers["Content-Type"] = "text/html"
+  response.body = "<!DOCTYPE html>\
+<head>\
+  <title>LADI Continuous Integration</title>\
+</head>\
+<body>\
+LADI Continuous Integration\
+<br>\
 WIP\
+<br>\
 yeah!\
+</body>\
 "
   return response
 end
