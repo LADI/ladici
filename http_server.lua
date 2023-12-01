@@ -38,8 +38,10 @@ local function process_raw_msg(request, raw_msg)
   return false
 end
 
-function create(router)
-  print('Creating HTTP server')
+function create(router, port, host)
+  local port = port or 8010
+  local host = host or "127.0.0.1"
+  print(('Creating HTTP server %s:%u'):format(host, port))
 
   local function remote_client_thread(peer)
     print("Remote " .. peer.get_description() .. " connected")
@@ -103,7 +105,7 @@ function create(router)
     print(("Remote %s disconnected (%s)"):format(peer.get_description(), tostring(err)))
   end
 
-  err = remotes.create_tcp_server(remote_client_thread, {{host='127.0.0.01', port=8010}})
+  err = remotes.create_tcp_server(remote_client_thread, {{host=host, port=port}})
   if err then return err end
 end
 
