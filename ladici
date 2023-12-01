@@ -24,6 +24,7 @@ success, config = pcall(dofile, homedir .. '/.ladici')
 if not success then
   print("Warning: " .. err)
 --else
+--  print("config:")
 --  misc.dump_table(config)
 end
 
@@ -56,7 +57,26 @@ yeah!\
   return response
 end
 
-err = http_server.create(router)
+-- the defaults
+settings = {}
+settings.mode = 'hq'
+settings.http_bind = "127.0.0.1"
+settings.http_port = 8010
+
+-- read site/node/machine settings from config table
+if config then
+  for k, v in pairs(settings) do
+--    print(k, v, config[k])
+    if config[k] then
+      settings[k] = config[k]
+    end
+  end
+end
+
+--print("settings:")
+--misc.dump_table(settings)
+
+err = http_server.create(router, settings.http_port, settings.http_bind)
 if err then
   print(err)
 else
