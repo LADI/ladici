@@ -6,9 +6,9 @@
 <!-- <script src="/my-script.lua" type="application/lua" async></script> -->
 <script type="application/lua">
   print("LADICI lua in web browser!")
-  print(package.path)
+  --print(package.path)
   package.path = './?.lua'
-  print(package.path)
+  --print(package.path)
   local js = require "js"
   --print("js: " .. repr(js))
   local window = js.global
