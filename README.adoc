@@ -1,10 +1,14 @@
-ladici - The LADI Continuous Integration software
+:title: ladici - The LADI Continuous Integration software
+:docinfo: private-head,private-header
+:keywords: LADI, Continuous Integration, CI, lua
+
+= ladici - The LADI Continuous Integration software
 
 .WORK IN PROGRESS
 [NOTE]
 This is Work In Progress.
 
-Goals:
+== Goals:
 
  * Minimal dependencies
  ** lua
@@ -13,7 +17,7 @@ Goals:
  * IRC based LPC/RPC
  * no database. Use lua files for configuration. Use filesystem symlinks & hardlinks where a simple filesystem tree is not enough.
 
-Concepts:
+== Concepts:
 
  * ladici HQ - the central machine/node
  * ladici factory - a machine/node (can be the HQ one) where lanes are hosted
@@ -21,7 +25,7 @@ Concepts:
 
 In simplest case, ladici deployment consists of single machine/node running ladici. The process running HQ can also run a factory and is pre-configured so with one that runs lane to create tarballs from sources.
 
-Usage:
+== Usage:
 
 Running "./ladici hq" from source checkout will start the HQ node.
 By default HQ node comes with a HTTP server listening at 127.0.0.1:8010 for read-only HTML server-side scripting generated view.
@@ -32,7 +36,7 @@ To run the client-side scripting in WWW browser with JavaScript:
  * Copy fengari-web.js to the same directory that will serve ladici-fengari.html and ladici-fengari.lua
  * Setup web server to serve static content of the directory where ladici-fengari.html and ladici-fengari.lua and fengari-web.js reside and make ladici-fengari.html the default document.
 
-Configuring:
+== Configuring:
 
 Example of configuring the ladici http server to bind at 127.0.3.2 instead of 127.0.0.1
 
