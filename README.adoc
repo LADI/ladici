@@ -3,3 +3,20 @@ ladici - The LADI Continuous Integration software
 .WORK IN PROGRESS
 [NOTE]
 This is Work In Progress.
+
+Goals:
+
+ * Minimal dependencies
+ ** lua
+ ** luasocket
+ ** fengari (optional, for the client-side scripting frontend)
+ * IRC based LPC/RPC
+ * no database. Use lua files for configuration. Use filesystem symlinks & hardlinks where a simple filesystem tree is not enough.
+
+Concepts:
+
+ * ladici HQ - the central machine/node
+ * ladici factory - a machine/node (can be the HQ one) where lanes are hosted
+ * ladici lane - a chain or DAG of rules & commands to be executed by ladici factories
+
+In simplest case, ladici deployment consists of single machine/node running ladici. This central node, HQ. The process running HQ can also run a factory and is pre-configured so with one that runs lane to create tarballs from sources.
